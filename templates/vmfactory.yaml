@@ -1,0 +1,644 @@
+# Example YAML to get you started quickly.
+# Be aware that YAML has indentation based scoping.
+# Code completion support is available so start typing for available options.
+swagger: '2.0'
+
+# This is your document metadata
+info:
+  version: "1.0.0"
+  title: VMFactory
+
+# Describe your paths here
+paths:
+  # This is a path endpoint. Change it.
+  /login/:
+    # This is a HTTP operation
+    post:
+      # Describe this verb here. Note: you can use markdown
+      description: |
+        Send user id and password to validate account.
+      # This is array of GET operation parameters:
+      parameters:
+        # An example parameter that is in query and is required
+        - name: userid
+          in: query
+          description: ID to login
+          required: true
+          type: string
+
+        - name: password
+          in: query
+          description: Password for user
+          required: true
+          type: string
+          
+      # Expected responses for this operation:
+      responses:
+        # Response code
+        200:
+          description: Valid user.
+          # A schema describing your response object.
+          # Use JSON Schema format
+          schema:
+            title: Authentication token
+            type: string
+            items:
+              title: authToken
+              type: string
+              properties:
+                authToken:
+                  type: string
+        400:
+          description: Invalid user information
+          
+  /tenantlist/:
+    get:
+      description: |
+        Gets tenant list for given user information.
+      parameters:
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+      responses:
+        200:
+          description: list of tenants
+          schema:
+            title: Tenants list
+            type: array
+            items:
+              properties:
+                tenantName:
+                  type: string
+                tenantID:
+                  type: string
+        400:
+          description: Invalid user
+          
+  /{tenantname}/volumelist/:
+    get:
+      description: |
+        Gets volume list for given tenant name.
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+      responses:
+        200:
+          description: list of volumes
+          schema:
+            title: volume list
+            type: array
+            items:
+              properties:
+                id:
+                  type: string
+                uuid:
+                  type: string
+                volume_type:
+                  type: string
+                size:
+                  type: number
+                  format: int
+                name:
+                  type: string
+        400:
+          description: Invalid user
+          
+  /{tenantname}/vmlist/:
+    get:
+      description: |
+        Gets vm list for given tenant name.
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+      responses:
+        200:
+          description: list of vms
+          schema:
+            title: vm list
+            type: array
+            items:
+              properties:
+                id:
+                  type: string
+                uuid:
+                  type: string
+                name:
+                  type: string
+                datadefaulttype:
+                  type: string
+                datavolumeprefix:
+                  type: string
+                datavolumecount:
+                  type: number
+                  format: int
+                datadefaultsize:
+                  type: number
+                  format: int
+                volumes_attached:
+                  type: array
+                  items:
+                    properties:
+                      id:
+                        type: string
+                      uuid:
+                        type: string
+                      volume_type:
+                        type: string
+                      size:
+                        type: number
+                        format: int
+                      name:
+                        type: string
+        400:
+          description: Invalid user
+          
+  /{tenantname}/flavorlist/:
+    get:
+      description: |
+        Gets flavor list for given tenant name.
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+      responses:
+        200:
+          description: list of flavors
+          schema:
+            title: flavor list
+            type: array
+            items:
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+        400:
+          description: Invalid user
+          
+  /{tenantname}/secgrouplist/:
+    get:
+      description: |
+        Gets security group list for given tenant name.
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+      responses:
+        200:
+          description: list of security groups
+          schema:
+            title: security group list
+            type: array
+            items:
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+        400:
+          description: Invalid user
+          
+  /{tenantname}/imagelist/:
+    get:
+      description: |
+        Gets image list for given tenant name.
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+      responses:
+        200:
+          description: list of images
+          schema:
+            title: image list
+            type: array
+            items:
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+        400:
+          description: Invalid user
+
+  /{tenantname}/keypairlist/:
+    get:
+      description: |
+        Gets keypair list for given tenant name.
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+      responses:
+        200:
+          description: list of keypairs
+          schema:
+            title: keypair list
+            type: array
+            items:
+              properties:
+                fingerprint:
+                  type: string
+                name:
+                  type: string
+        400:
+          description: Invalid user
+          
+  /{tenantname}/osavailabilityzonelist/:
+    get:
+      description: |
+        Gets os availaibility zone list for given tenant name.
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+      responses:
+        200:
+          description: list of os availaibility zone
+          schema:
+            title: os availaibility zone list
+            type: array
+            items:
+              type: string
+        400:
+          description: Invalid user
+          
+  /{tenantname}/volumeavailabilityzonelist/:
+    get:
+      description: |
+        Gets volume availaibility zone list for given tenant name.
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+      responses:
+        200:
+          description: list of volume availaibility zone
+          schema:
+            title: volume availaibility zone list
+            type: array
+            items:
+              type: string
+        400:
+          description: Invalid user
+          
+  /{tenantname}/volumetypeist/:
+    get:
+      description: |
+        Gets volume type list for given tenant name.
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+      responses:
+        200:
+          description: list of volume type
+          schema:
+            title: volume type list
+            type: array
+            items:
+              type: string
+        400:
+          description: Invalid user
+          
+  /{tenantname}/networkist/:
+    get:
+      description: |
+        Gets network list for given tenant name.
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+      responses:
+        200:
+          description: list of networks
+          schema:
+            title: network list
+            type: array
+            items:
+              properties:
+                tenantID:
+                  type: string
+                name:
+                  type: string
+        400:
+          description: Invalid user
+          
+  /{tenantname}/createvolumes/{vmid}/:
+    get:
+      description: |
+        Create volumes on given vmid.
+      consumes:
+        - application/json
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+          
+        - name: vmid
+          in: path
+          description: vm id which creates and attaches volumes
+          required: true
+          type: string
+          
+        - name: body
+          in: body
+          required: true
+          schema:
+            title: volumes create list
+            type: array
+            items:
+              properties:
+                volumesize:
+                  type: number
+                  format: int
+                volumetype:
+                  type: string
+                volumename:
+                  type: string
+      responses:
+        200:
+          description: Create Success
+        400:
+          description: Invalid user
+          
+  /{tenantname}/createvm/:
+    get:
+      description: |
+        Create VM in given tenant.
+      consumes:
+        - application/json
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+          
+        - name: body
+          in: body
+          required: true
+          schema:
+            title: VM info
+            type: array
+            items:
+              properties:
+                volumesize:
+                  type: number
+                  format: int
+                volumetype:
+                  type: string
+                volumename:
+                  type: string
+      responses:
+        200:
+          description: Create Success
+        400:
+          description: Invalid user
+          
+  /{tenantname}/vminfo/{vmid}/:
+    get:
+      description: |
+        Gets vm list for given tenant name.
+      parameters:
+        - name: tenantname
+          in: path
+          description: tenant name
+          required: true
+          type: string
+          
+        - name: UserName
+          in: header
+          description: user ID
+          required: true
+          type: string
+          
+        - name: Password
+          in: header
+          description: password
+          required: true
+          type: string
+          
+        - name: vmid
+          in: path
+          description: vmid
+          required: true
+          type: string
+          
+      responses:
+        200:
+          description: vm information
+          schema:
+            title: vm info
+            type: array
+            items:
+              properties:
+                id:
+                  type: string
+                uuid:
+                  type: string
+                name:
+                  type: string
+                datadefaulttype:
+                  type: string
+                datavolumeprefix:
+                  type: string
+                datavolumecount:
+                  type: number
+                  format: int
+                datadefaultsize:
+                  type: number
+                  format: int
+                volumes_attached:
+                  type: array
+                  items:
+                    properties:
+                      id:
+                        type: string
+                      uuid:
+                        type: string
+                      volume_type:
+                        type: string
+                      size:
+                        type: number
+                        format: int
+                      name:
+                        type: string
+        400:
+          description: Invalid user

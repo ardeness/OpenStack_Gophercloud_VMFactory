@@ -26,6 +26,48 @@ function copyToClipboard(text) {
 	document.body.removeChild(textArea);
 }
 
+var App = React.createClass({
+	getInitialState: function() {
+		return({userName:"", password:""});
+	},
+	handleLogin: function(userName, password) {
+		sessionStorage.setItem('userName', userName);
+		sessionStorage.setItem('password', password);
+		this.setState({userName:userName, password:password})
+	},
+	handleLogout: function() {
+		sessionStorage.removeItem('userName');
+		sessionStorage.removeItem('password');
+		this.setState({userName:"", password:""});
+	},
+	componentDidMount: function() {
+		var userName = sessionStorage.getItem('userName');
+		var password = sessionStorage.getItem('password');
+
+		if(userName != "" && password != "") {
+			this.setState({userName:userName,password:password});
+		}
+//		$(window).unload(function() {
+//			sessionStorage.removeItem('userName');
+//			sessionStorage.removeItem('password');
+//		});
+	},
+	render: function() {
+		if(this.state.userName && this.state.password) {
+			return(<VMFactory	userName={this.state.userName}
+						password={this.state.password}
+						callback={this.handleLogout}
+				/>);
+		} else {
+			return(<LoginTemplate	header="VMFactory"
+						subHeader="VM / Volume create more easily"
+						callback={this.handleLogin}
+			/>);
+		}
+	}
+});
+	
+
 var VMFactory = React.createClass({
 	getInitialState: function() {
 		return {
@@ -54,6 +96,10 @@ var VMFactory = React.createClass({
 			url: 'tenantlist/',
 			dataType: 'json',
 			cache: false,
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				self.setState({tenantlist:data});
 				self.loadVolumeTypeListFromServer(data[0]['tenantName']);
@@ -83,9 +129,13 @@ var VMFactory = React.createClass({
 			}
 		}
 		$.ajax({
-			url: 'networklist/?tenant='+tenant+'&tenantID='+tenantID,
+			url: tenant+'/networklist/'+tenantID+'/',
 			dataType: 'json',
 			cache: false,
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				data.sort(function(a, b) {
 					if(a.name > b.name) return 1;
@@ -102,9 +152,13 @@ var VMFactory = React.createClass({
 	loadFlavorListFromServer: function(tenant) {
 		var self = this;
 		$.ajax({
-			url: 'flavorlist/?tenant='+tenant,
+			url: tenant+'/flavorlist/',
 			dataType: 'json',
 			cache: false,
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				data.sort(function(a, b) {
 					if(a.name > b.name) return 1;
@@ -121,9 +175,13 @@ var VMFactory = React.createClass({
 	loadSecgroupListFromServer: function(tenant) {
 		var self = this;
 		$.ajax({
-			url: 'secgrouplist/?tenant='+tenant,
+			url: tenant+'/secgrouplist/',
 			dataType: 'json',
 			cache: false,
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				data.sort(function(a, b) {
 					if(a.name > b.name) return 1;
@@ -140,9 +198,13 @@ var VMFactory = React.createClass({
 	loadImageListFromServer: function(tenant) {
 		var self = this;
 		$.ajax({
-			url: 'imagelist/?tenant='+tenant,
+			url: tenant+'/imagelist/',
 			dataType: 'json',
 			cache: false,
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				data.sort(function(a, b) {
 					if(a.name > b.name) return 1;
@@ -159,9 +221,13 @@ var VMFactory = React.createClass({
 	loadKeypairListFromServer: function(tenant) {
 		var self = this;
 		$.ajax({
-			url: 'keypairlist/?tenant='+tenant,
+			url: tenant+'/keypairlist/',
 			dataType: 'json',
 			cache: false,
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				data.sort(function(a, b) {
 					if(a.name > b.name) return 1;
@@ -179,9 +245,13 @@ var VMFactory = React.createClass({
 		var self = this;
 		self.setState({tenantenabled:false});
 		$.ajax({
-			url: 'vmlist/?tenant='+tenant,
+			url: tenant+'/vmlist/',
 			dataType: 'json',
 			cache: false,
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				self.setState({vmdata:data,tenant:tenant,tenantenabled:true});
 				self.setSearchWord(this.state.searchWord);
@@ -194,9 +264,13 @@ var VMFactory = React.createClass({
 	loadVolumeListFromServer: function(tenant) {
 		var self = this;
 		$.ajax({
-			url: 'volumelist/?tenant='+tenant,
+			url: tenant+'/volumelist/',
 			dataType: 'json',
 			cache: false,
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				self.setState({volumedata:data,tenant:tenant});
 			}.bind(this),
@@ -208,9 +282,13 @@ var VMFactory = React.createClass({
 	loadOSAvailabilityZoneListFromServer: function(tenant) {
 		var self = this;
 		$.ajax({
-			url: 'osavailabilityzonelist/?tenant='+tenant,
+			url: tenant+'/osavailabilityzonelist/',
 			dataType: 'json',
 			cache: false,
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				data.sort(function(a, b) {
 					if(a > b) return 1;
@@ -227,9 +305,13 @@ var VMFactory = React.createClass({
 	loadVolumeAvailabilityZoneListFromServer: function(tenant) {
 		var self = this;
 		$.ajax({
-			url: 'volumeavailabilityzonelist/?tenant='+tenant,
+			url: tenant+'/volumeavailabilityzonelist/',
 			dataType: 'json',
 			cache: false,
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				data.sort(function(a, b) {
 					if(a > b) return 1;
@@ -246,9 +328,13 @@ var VMFactory = React.createClass({
 	loadVolumeTypeListFromServer: function(tenant) {
 		var self = this;
 		$.ajax({
-			url: 'volumetypelist/?tenant='+tenant,
+			url: tenant+'/volumetypelist/',
 			dataType: 'json',
 			cache: false,
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				data.sort(function(a, b) {
 					if(a > b) return 1;
@@ -262,6 +348,7 @@ var VMFactory = React.createClass({
 			}.bind(this)
 		});
 	},
+/*
 	handleCreateVolumes: function(vmid, volumelist, callback) {
 		var self = this;
 		$.ajax({
@@ -280,6 +367,7 @@ var VMFactory = React.createClass({
 			}.bind(this)
 		});
 	},
+*/
 	handleChange: function(event) {
 		this.loadVolumeTypeListFromServer(event.target.value);
 		this.loadVMListFromServer(event.target.value);
@@ -290,6 +378,27 @@ var VMFactory = React.createClass({
 		this.loadKeypairListFromServer(event.target.value);
 		this.loadOSAvailabilityZoneListFromServer(event.target.value);
 		this.loadVolumeAvailabilityZoneListFromServer(event.target.value);
+	},
+	updateMe: function(data) {
+		var length = this.state.vmdata.length;
+		var targetvm = null;
+
+		for(var i=0; i<length; i++) {
+			if(this.state.vmdata[i].vmid == data.vmid) {
+				targetvm = this.state.vmdata[i];
+				break;
+			}
+		}
+
+		if(targetvm != null) {
+			targetvm.vmid			= data.vmid;
+			targetvm.vmname 		= data.vmname;
+			targetvm.uuid			= data.uuid;
+			targetvm.volumes_attached	= data.volumes_attached;
+			targetvm.volumedefaulttype	= data.volumedefaulttype;
+			targetvm.volumecount		= data.volumecount;
+			targetvm.volumedefaultsize	= data.volumedefaultsize;
+		}
 	},
 	setSearchWord: function(searchWord) {
 		var viewdata=[];
@@ -314,9 +423,13 @@ var VMFactory = React.createClass({
 	createVM: function(data, callback) {
 		data["tenant"] = this.state.tenant;
 		$.ajax({
-			url: 'createvm/?tenant='+this.state.tenant,
+			url: this.state.tenant+'/createvm/',
 			type: 'POST',
 			data: JSON.stringify(data),
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
 			success: function(data) {
 				this.loadVMListFromServer(this.state.tenant);
 				callback(true);
@@ -348,8 +461,8 @@ var VMFactory = React.createClass({
 
 		var VMInfoList = this.state.viewdata.map(function(vminfo) {
 			return (
-				<VMInfo
-					key={vminfo.uuid}
+				<VMInfo	key={vminfo.uuid}
+					tenant={this.state.tenant}
 					vmname={vminfo.name}
 					uuid={vminfo.uuid}
 					volumes_attached={vminfo.volumes_attached}
@@ -359,6 +472,7 @@ var VMFactory = React.createClass({
 					volumedefaulttype={vminfo.datadefaulttype}
 					volumedefaultsize={vminfo.datadefaultsize}
 					handleCreateVolumes={this.handleCreateVolumes}
+					updateParent={this.updateMe}
 				/>
 			)
 		}.bind(this));
@@ -414,11 +528,9 @@ var VMFactory = React.createClass({
 						</div>
 						<div className="two wide field">
 							<label className="right aligned">&nbsp;</label>
-							<a href="logout/">
-								<div className="ui midium button">
+								<div className="ui midium button" onClick={this.props.callback}>
 									Logout
 								</div>
-							</a>
 						</div>
 					</div>
 				</div>
@@ -767,7 +879,64 @@ var VolumeCreateItem = React.createClass({
 });
 
 var VMInfo = React.createClass({
-	handleSubmit: function() {
+	getInitialState: function() {
+		//return({volumecreatelist:[{'volumename':'test','volumesize':'50G','volumetype':'OS'}],volumecreatecount:0});
+		return({tenant:'',
+			vmname:'',
+			uuid:'',
+			volumes_attached:[],
+			volumetypelist:[],
+			volumecreatelist:[],
+			volumecreatecount:0,
+			volumeprefix:'',
+			volumedefaulttype:'',
+			volumecount:0,
+			volumedefaultsize:0});
+	},
+	updateMe: function() {
+		var self = this;
+		$.ajax({
+			url: this.state.tenant+'/vminfo/'+this.state.uuid+'/',
+			dataType: 'json',
+			cache: false,
+			success: function(data) {
+				this.setState({	vmname:data.name,
+						uuid:data.uuid,
+						volumes_attached:data.volumes_attached,
+						volumeprefix:data.datavolumeprefix,
+						volumedefaulttype:data.datavolumedefaulttype,
+						volumecount:data.datavolumecount,
+						volumedefaultsize:data.datadefaultsize});
+				this.props.updateParent(data);
+			}.bind(this),
+			error: function(xhr, status, err) {
+				console.error(this.props.url, status, err.toString());
+			}.bind(this)
+		});
+	},			
+	handleCreateVolumes: function(callback) {
+		var self = this;
+		var vmid = this.state.uuid;
+		var volumelist = this.state.volumecreatelist;
+		$.ajax({
+			url: tenant+'/createvolumes/'+vmid+'/',
+			dataType: 'json',
+			type: 'POST',
+			data: JSON.stringify(volumelist),
+			headers: {
+				'UserName':this.props.userName,
+				'Password':this.props.password,
+			},
+			success: function(data) {
+				callback(false);
+				this.setState({volumecreatelist:[]});
+				this.updateMe();
+			}.bind(this),
+			error: function(xhr, status, err) {
+				callback(false);
+				console.error(this.props.url, status, err.toString());
+			}.bind(this)
+		});
 	},
 	addVolumeCreateTarget: function() {
 		var volumeinfo = {};
@@ -782,17 +951,13 @@ var VMInfo = React.createClass({
 		volumecreatelist.push(volumeinfo);
 		this.setState({volumecreatelist:volumecreatelist,volumecount:this.state.volumecount+1});
 	},
-	getInitialState: function() {
-		//return({volumecreatelist:[{'volumename':'test','volumesize':'50G','volumetype':'OS'}],volumecreatecount:0});
-		return({volumecreatelist:[],
-			volumecreatecount:0,
-			volumeprefix:'',
-			volumedefaulttype:'',
-			volumecount:0,
-			volumedefaultsize:0});
-	},
 	componentDidMount: function() {		
-		this.setState({	volumeprefix:this.props.volumeprefix,
+		this.setState({	tenant:this.props.tenant,
+				vmname:this.props.vmname,
+				uuid:this.props.uuid,
+				volumes_attached:this.props.volumes_attached,
+				volumetypelist:this.props.volumetypelist,
+				volumeprefix:this.props.volumeprefix,
 				volumedefaulttype:this.props.volumedefaulttype,
 				volumecount:this.props.volumecount,
 				volumedefaultsize:this.props.volumedefaultsize});
@@ -826,20 +991,11 @@ var VMInfo = React.createClass({
 		volumecreatelist.splice(idx, 1);
 		this.setState({volumecreatelist:volumecreatelist});
 	},
-	handleCreateVolumes: function(callBack) {
-		this.props.handleCreateVolumes(this.props.uuid, this.state.volumecreatelist, callBack);
-		//this.setState({volumecreatelist:[]});
-	},
 	handleUUIDCopy: function(even) {
 		copyToClipboard(this.props.uuid);
 	},
-	callBack: function(result) {
-		if(result) {
-			this.setState({volumecreatelist:[]});
-		}
-	},
 	render: function() {
-		var volumeTypeSelect = this.props.volumetypelist.map(function(volumetype) {
+		var volumeTypeSelect = this.state.volumetypelist.map(function(volumetype) {
 			return (
 				<option
 					key={volumetype}
@@ -850,12 +1006,12 @@ var VMInfo = React.createClass({
 				 </option>
 			)
 		}.bind(this));
-		this.props.volumes_attached.sort(function(a, b) {
+		this.state.volumes_attached.sort(function(a, b) {
 			if(a.name > b.name) return 1;
 			if(a.name < b.name) return -1;
 			return 0;
 		});
-		var VolumeList = this.props.volumes_attached.map(function(volumeinfo) {
+		var VolumeList = this.state.volumes_attached.map(function(volumeinfo) {
 			return (
 				<div key={volumeinfo.id}>
 				<div className="ui horizontal list">
@@ -884,9 +1040,9 @@ var VMInfo = React.createClass({
 			);
 		}.bind(this));
 		return (
-			<tr key={this.props.uuid} className="ui center aligned">
-				<td className="two wide center aligned">{this.props.vmname}</td>
-				<td className="two wide center aligned small"><i title={this.props.uuid} className="external icon" onClick={this.handleUUIDCopy}/></td>
+			<tr key={this.state.uuid} className="ui center aligned">
+				<td className="two wide center aligned">{this.state.vmname}</td>
+				<td className="two wide center aligned small"><i title={this.state.uuid} className="external icon" onClick={this.handleUUIDCopy}/></td>
 				<td className="thirteen wide center aligned">
 					{VolumeList}
 					{VolumeCreateList}
@@ -900,7 +1056,6 @@ var VMInfo = React.createClass({
 						label="Create"
 						className="ui small blue basic labled icon button"
 						handleClick={this.handleCreateVolumes}
-						callBack={this.callBack}
 					/>
 				</td>
 			</tr> 
@@ -919,7 +1074,6 @@ var SubmitButton = React.createClass({
 	},
 	callBack: function(result) {
 		this.setState({status:false});
-		this.props.callBack(result);
 	},
 	render: function() {
 		if(this.state.status) {
@@ -982,7 +1136,94 @@ var ActionButton = React.createClass({
 	}
 });
 
+var LoginTemplate = React.createClass({
+	getInitialState: function() {
+		return({userid:"",password:""});
+	},
+	handleUseridChange: function(e) {
+		this.setState({userid: e.target.value});
+	},
+	handlePasswordChange: function(e) {
+		this.setState({password: e.target.value});
+	},
+	handleLogin: function(e) {
+		e.preventDefault();
+		var logindata={};
+		logindata["userid"] = this.state.userid;
+		logindata["password"] = this.state.password;
+		$.ajax({
+			url: 'login/',
+			//dataType: 'json',
+			type: 'POST',
+			data: JSON.stringify(logindata),
+			success: function(data) {
+				this.props.callback(this.state.userid, this.state.password);
+			}.bind(this),
+			error: function(xhr, status, err) {
+				console.error(this.props.url, status, err.toString());
+			}.bind(this)
+		});
+	},		
+	render: function() {
+		return (
+		<div className="ui center aligned basic segment container" style={{width:'450px'}}>
+			<div className="mb">
+				<h2 className="ui header aligned left">
+					<i className="tasks icon"></i>
+					<div className="content">{this.props.header}
+						<div className="sub header">
+							{this.props.subHeader}
+						</div>
+					</div>
+				</h2>
+			</div>
+			<form className="ui large form" onSubmit={this.handleLogin}>
+				<div className="ui stacked segment">
+					<div className="field">
+						<div className="ui left icon input">
+							<i className="user icon"/>
+							<input	id="userid"
+								type="text"
+								value={this.state.userid}
+								name="userid"
+								placeholder="ID"
+								onChange={this.handleUseridChange}
+							/>
+						</div>
+					</div>
+					<div className="field">
+						<div className="ui left icon input">
+							<i class="lock icon"/>
+							<input	id="password"
+								type="password"
+								value={this.state.password}
+								name="password"
+								placeholder="Password"
+								onChange={this.handlePasswordChange}
+							/>
+						</div>
+					</div>
+					<button	className="ui fluid large primary button"
+						type="submit">
+						Log in
+					</button>
+				</div>
+			</form>
+			<div class="ui message">
+				New to us? Find <i title={this.props.contact}>Suarez</i>!!!
+				<i class="bomb icon"></i>
+			</div>
+		</div>);
+	}
+});
+
+ReactDOM.render(
+		<App/>,
+		document.getElementById('VMFactory')
+);
+/*
 ReactDOM.render(
 		<VMFactory/>,
 		document.getElementById('VMFactory')
 );
+*/

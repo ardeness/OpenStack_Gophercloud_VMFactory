@@ -64,12 +64,14 @@ func main() {
 		apppath = "/"+apppath+"/"
 	}
 
-	urlparser := map[string]interface{} {
+	mainurlparser := map[string]interface{} {
 		"/"				: defaultProcessor,
 		"/login/"			: loginProcessor,
 		"/logout/"			: logoutProcessor,
-		"/vmlist/"			: vmlistProcessor,
 		"/tenantlist/"			: tenantlistProcessor,
+		}
+	tenanturlparser := map[string]interface{} {
+		"/vmlist/"			: vmlistProcessor,
 		"/volumelist/"			: volumelistProcessor,
 		"/flavorlist/"			: flavorlistProcessor,
 		"/secgrouplist/"		: secgrouplistProcessor,
@@ -78,9 +80,10 @@ func main() {
 		"/osavailabilityzonelist/"	: osavailabilityzonelistProcessor,
 		"/volumeavailabilityzonelist/"	: volumeavailabilityzonelistProcessor,
 		"/volumetypelist/"		: volumetypelistProcessor,
-		"/networklist/"			: networklistProcessor,
-		"/createvolumes/"		: createvolumesProcessor,
+		"/networklist/{tenantid}/"	: networklistProcessor,
+		"/createvolumes/{vmid}/"	: createvolumesProcessor,
 		"/createvm/"			: createvmProcessor,
+		"/vminfo/{vmid}/"		: vminfoProcessor,
 	}
 
 	// Regist all url handlers in urlparser
@@ -88,8 +91,12 @@ func main() {
 	r := mux.NewRouter()
 	r.PathPrefix(apppath+"static/").Handler(http.StripPrefix(apppath+"static/", http.FileServer(http.Dir("templates"))))
 	s := r.PathPrefix(apppath).Subrouter()
-	for url, handler := range urlparser {
-		s.HandleFunc(url, handler.(func(http.ResponseWriter, *http.Request)))
+	for mainurl, handler := range mainurlparser {
+		s.HandleFunc(mainurl, handler.(func(http.ResponseWriter, *http.Request)))
+	}
+//	p := s.PathPrefix("/{tenantname}/").Subrouter()
+	for tenanturl, handler := range tenanturlparser {
+		s.HandleFunc("/{tenantname}"+tenanturl, handler.(func(http.ResponseWriter, *http.Request)))
 	}
 	//fs := http.FileServer(http.Dir("templates"))
 
@@ -106,19 +113,29 @@ func main() {
 
 func defaultProcessor(w http.ResponseWriter, r *http.Request) {
 
-	_, err := getCredential(r, false)
-
-	if err != nil {
-		http.Redirect(w, r, "login/", http.StatusMovedPermanently)
-	} else {
+//	_, err := getCredential(r, false)
+//
+//	if err != nil {
+//		http.Redirect(w, r, "login/", http.StatusMovedPermanently)
+//	} else {
 		http.ServeFile(w, r, "templates/index.html")
-	}
+//	}
 }
 
 func loginProcessor(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
-		username := r.FormValue("userid")
-		password := r.FormValue("password")
+		decoder := json.NewDecoder(r.Body)
+		var credentialinfo map[string]string
+
+		err := decoder.Decode(&credentialinfo)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		username := credentialinfo["userid"]
+		password := credentialinfo["password"]
 
 		opts := gophercloud.AuthOptions {
 			IdentityEndpoint: openstack_url+":5000/v2.0/",
@@ -129,42 +146,10 @@ func loginProcessor(w http.ResponseWriter, r *http.Request) {
 		provider, err := openstack.AuthenticatedClient(opts)
 
 		if err != nil {
-			http.ServeFile(w, r, "templates/login.html")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		client := openstack.NewIdentityV2(provider)
-
-		pager := tenants.List(client, &tenants.ListOpts{})
-
-		tenantinfo := make(map[string]interface{})
-
-		err = pager.EachPage(func(page pagination.Page)(bool, error) {
-			tenantList, err := tenants.ExtractTenants(page)
-
-			for _, t := range tenantList {
-				tenantinfo["tenantID"] = t.ID
-				tenantinfo["tenantName"] = t.Name
-				break
-			}
-			return true, err
-		})
-
-		if err == nil {
-			session, _ := store.Get(r, "session-name")
-			session.Values["userid"]	= username
-			session.Values["password"]	= password
-			session.Values["defaulttenant"]	= tenantinfo["tenantName"]
-			session.Save(r,w)
-			http.Redirect(w, r, apppath, http.StatusMovedPermanently)
-			return
-		} else {
-			http.ServeFile(w, r, "templates/login.html")
-			return
-		}
-	} else {
-		http.ServeFile(w, r, "templates/login.html")
-		return
+		w.Write([]byte(provider.TokenID))
 	}
 }
 
@@ -665,7 +650,8 @@ func networklistProcessor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenantID := r.URL.Query().Get("tenantID")
+	vars := mux.Vars(r)
+	tenantID := vars["tenantid"]
 
 	pager := networks.List(client, networks.ListOpts{TenantID:tenantID})
 
@@ -713,7 +699,8 @@ func createvolumesProcessor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
-		vmID := r.URL.Query().Get("vmid")
+		vars := mux.Vars(r)
+		vmID := vars["vmid"]
 		decoder := json.NewDecoder(r.Body)
 		var volumeinfolist []map[string]interface{}
 		err = decoder.Decode(&volumeinfolist)
@@ -748,10 +735,22 @@ func createvolumesProcessor(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, fmt.Errorf("Wrong Req.").Error(), http.StatusInternalServerError)
 					return
 			}
+			var volumetype string
+			switch v["volumetype"].(type) {
+				case string :
+					volumetype = v["volumetype"].(string)
+					break
+				case nil :
+					volumetype = ""
+					break
+				default:
+					http.Error(w, fmt.Errorf("Unknown error.").Error(), http.StatusInternalServerError)
+					return
+			}
 			volumecreateopts := volumes.CreateOpts {
 						Name		: v["volumename"].(string),
 						Size		: volumesize,
-						VolumeType	: v["volumetype"].(string),
+						VolumeType	: volumetype,
 						}
 
 			vol, err := volumes.Create(volumeclient, volumecreateopts).Extract()
@@ -792,6 +791,10 @@ func createvolumesProcessor(w http.ResponseWriter, r *http.Request) {
 		for completevolumelist.Len() > 0 {
 			for e := completevolumelist.Front(); e != nil;  {
 				e.Value, err = volumes.Get(volumeclient, e.Value.(*volumes.Volume).ID).Extract()
+//				if err != nil {
+//					http.Error(w, err.Error(), http.StatusInternalServerError)
+//					return
+//				}
 				if e.Value.(*volumes.Volume).Status == "in-use" {
 					t = e
 				}
@@ -954,39 +957,125 @@ func createvmProcessor(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func getCredential(r *http.Request, getTenant bool)(*gophercloud.ProviderClient, error){
-	session, _ := store.Get(r, "session-name")
-	username, usernamefound := session.Values["userid"].(string)
-	password, passwordfound := session.Values["password"].(string)
+func vminfoProcessor(w http.ResponseWriter, r *http.Request) {
 
-	if !usernamefound || !passwordfound {
-		return nil, fmt.Errorf("Authentication Required")
+	response := make(map[string]interface{})
+	provider, err := getCredential(r, true)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	vars := mux.Vars(r)
+	vmid := vars["vmid"]
+
+	if vmid == "" {
+		http.Error(w, fmt.Errorf("Must specify vm id").Error(), http.StatusInternalServerError)
+		return
+	}
+
+	computeclient, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	volumeclient, err := openstack.NewBlockStorageV2(provider, gophercloud.EndpointOpts{})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	serverinfo, err := servers.Get(computeclient, vmid).Extract()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var volumeattachlist []map[string]interface{}
+	volumeattachpager := volumeattach.List(computeclient, vmid)
+	err = volumeattachpager.EachPage(func(page pagination.Page)(bool, error) {
+		volumeList, err := volumeattach.ExtractVolumeAttachments(page)
+
+		for _, v := range volumeList {
+			volumeinfo, err := volumes.Get(volumeclient, v.VolumeID).Extract()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return false, err
+			}
+			volumeInfo := make(map[string]interface{})
+			volumeInfo["id"]		= volumeinfo.ID
+			volumeInfo["uuid"]		= volumeinfo.ID
+			volumeInfo["volume_type"]	= volumeinfo.VolumeType
+			volumeInfo["size"]		= volumeinfo.Size
+			volumeInfo["name"]		= volumeinfo.Name
+
+			volumeattachlist = append(volumeattachlist, volumeInfo)
+		}
+		return true, err
+	})
+
+	var emptylist = make([]int, 0)
+
+	response["id"]			= serverinfo.ID
+	response["uuid"]		= serverinfo.ID
+	response["name"]		= serverinfo.Name
+	response["datadefaulttype"]	= ""
+	response["datavolumeprefix"]	= "data_"+serverinfo.Name+"_"
+	response["datavolumecount"]	= 0
+	response["datadefaultsize"]	= 0
+	response["volumes_attached"]	= emptylist
+
+	length := len(volumeattachlist)
+	if length > 0 {
+		response["volumes_attached"]	= volumeattachlist
+		response["datavolumecount"]	= length-1
+		response["datadefaulttype"]	= volumeattachlist[0]["volume_type"].(string)
+		response["datadefaultsize"]	= volumeattachlist[0]["size"].(int)
+	}
+
+	var js []byte
+	w.Header().Set("Content-Type", "application/json")
+	if response == nil {
+		js, err = json.Marshal(make([]int, 0))
+	} else {
+		js, err = json.Marshal(response)
+	}
+	w.Write(js)
+}
+
+func getCredential(r *http.Request, getTenant bool)(*gophercloud.ProviderClient, error){
+	userName := r.Header.Get("UserName")
+	password := r.Header.Get("Password")
+
+	if userName == "" || password == "" {
+		return nil, fmt.Errorf("Authorization required")
 	}
 
 	tenantname := ""
 
 	if getTenant {
-		tenantname = r.URL.Query().Get("tenant")
+		vars := mux.Vars(r)
+		tenantname = vars["tenantname"]
 
 		if tenantname == "" {
-			session, _ := store.Get(r, "session-name")
-			var tenantnamefound bool
-			tenantname, tenantnamefound = session.Values["defaulttenant"].(string)
-
-			if !tenantnamefound {
-				return nil, fmt.Errorf("Wrong credential or session.")
-			}
+			return nil, fmt.Errorf("Wrong credential or session.")
 		}
 	}
 
 	opts := gophercloud.AuthOptions {
-		IdentityEndpoint: openstack_url+":5000/v2.0/",
-		Username	: username,
-		Password	: password,
-		TenantName	: tenantname,
-	}
+		IdentityEndpoint	: openstack_url+":5000/v2.0/",
+		Username		: userName,
+		Password		: password,
+		TenantName		: tenantname,
+		}
 
 	provider, err := openstack.AuthenticatedClient(opts)
 
-	return provider, err
+	if err != nil {
+		return nil, err
+	}
+
+	return provider, nil
 }
