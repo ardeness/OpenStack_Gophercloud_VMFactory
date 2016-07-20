@@ -8,7 +8,7 @@
 all: push
 GOPATH=$(shell pwd)
 IMAGE=dockerregistry.hae.co.kr:5000/vmfactory
-TAG=v7.0
+TAG=v5.0
 
 vmfactory: vmfactory.go
 	go build vmfactory.go
