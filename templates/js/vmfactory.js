@@ -28,34 +28,32 @@ function copyToClipboard(text) {
 
 var App = React.createClass({
 	getInitialState: function() {
-		return({userName:"", password:""});
+		return({authToken:"", lastTenant:""});
 	},
-	handleLogin: function(userName, password) {
-		sessionStorage.setItem('userName', userName);
-		sessionStorage.setItem('password', password);
-		this.setState({userName:userName, password:password})
+	handleLogin: function(authToken) {
+		sessionStorage.setItem('authToken', authToken);
+		this.setState({authToken:authToken})
 	},
 	handleLogout: function() {
-		sessionStorage.removeItem('userName');
-		sessionStorage.removeItem('password');
-		this.setState({userName:"", password:""});
+		sessionStorage.removeItem('authToken');
+		sessionStorage.removeItem('lastTenant');
+		this.setState({authToken:"", lastTenant:""});
 	},
 	componentDidMount: function() {
-		var userName = sessionStorage.getItem('userName');
-		var password = sessionStorage.getItem('password');
+		var authToken = sessionStorage.getItem('authToken');
+		var lastTenant = sessionStorage.getItem('lastTenant');
 
-		if(userName != "" && password != "") {
-			this.setState({userName:userName,password:password});
+		if(authToken != "") {
+			this.setState({authToken:authToken});
 		}
-//		$(window).unload(function() {
-//			sessionStorage.removeItem('userName');
-//			sessionStorage.removeItem('password');
-//		});
+		if(lastTenant != null) {
+			this.setState({lastTenant:lastTenant});
+		}
 	},
 	render: function() {
-		if(this.state.userName && this.state.password) {
-			return(<VMFactory	userName={this.state.userName}
-						password={this.state.password}
+		if(this.state.authToken) {
+			return(<VMFactory	authToken={this.state.authToken}
+						lastTenant={this.state.lastTenant}
 						callback={this.handleLogout}
 				/>);
 		} else {
@@ -73,6 +71,7 @@ var VMFactory = React.createClass({
 		return {
 			tenantlist:[],
 			networklist:[],
+			floatingiplist:[],
 			flavorlist:[],
 			secgrouplist:[],
 			imagelist:[],
@@ -97,20 +96,25 @@ var VMFactory = React.createClass({
 			dataType: 'json',
 			cache: false,
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
+				var tenantName = data[0]['tenantName'];
+				if(this.props.lastTenant != "") {
+					tenantName = this.props.lastTenant;
+				}
+				sessionStorage.setItem('lastTenant', tenantName);
 				self.setState({tenantlist:data});
-				self.loadVolumeTypeListFromServer(data[0]['tenantName']);
-				self.loadVMListFromServer(data[0]['tenantName']);
-				self.loadNetworkListFromServer(data[0]['tenantName']);
-				self.loadFlavorListFromServer(data[0]['tenantName']);
-				self.loadSecgroupListFromServer(data[0]['tenantName']);
-				self.loadImageListFromServer(data[0]['tenantName']);
-				self.loadKeypairListFromServer(data[0]['tenantName']);
-				self.loadOSAvailabilityZoneListFromServer(data[0]['tenantName']);
-				self.loadVolumeAvailabilityZoneListFromServer(data[0]['tenantName']);
+				self.loadVolumeTypeListFromServer(tenantName);
+				self.loadVMListFromServer(tenantName);
+				self.loadNetworkListFromServer(tenantName);
+				self.loadFloatingIPListFromServer(tenantName);
+				self.loadFlavorListFromServer(tenantName);
+				self.loadSecgroupListFromServer(tenantName);
+				self.loadImageListFromServer(tenantName);
+				self.loadKeypairListFromServer(tenantName);
+				self.loadOSAvailabilityZoneListFromServer(tenantName);
+				self.loadVolumeAvailabilityZoneListFromServer(tenantName);
 			}.bind(this),
 			error: function(xhr, status, err) {
 				console.error(this.props.url, status, err.toString());
@@ -133,8 +137,7 @@ var VMFactory = React.createClass({
 			dataType: 'json',
 			cache: false,
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
 				data.sort(function(a, b) {
@@ -156,8 +159,7 @@ var VMFactory = React.createClass({
 			dataType: 'json',
 			cache: false,
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
 				data.sort(function(a, b) {
@@ -179,8 +181,7 @@ var VMFactory = React.createClass({
 			dataType: 'json',
 			cache: false,
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
 				data.sort(function(a, b) {
@@ -202,8 +203,7 @@ var VMFactory = React.createClass({
 			dataType: 'json',
 			cache: false,
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
 				data.sort(function(a, b) {
@@ -225,8 +225,7 @@ var VMFactory = React.createClass({
 			dataType: 'json',
 			cache: false,
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
 				data.sort(function(a, b) {
@@ -249,8 +248,7 @@ var VMFactory = React.createClass({
 			dataType: 'json',
 			cache: false,
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
 				self.setState({vmdata:data,tenant:tenant,tenantenabled:true});
@@ -268,8 +266,7 @@ var VMFactory = React.createClass({
 			dataType: 'json',
 			cache: false,
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
 				self.setState({volumedata:data,tenant:tenant});
@@ -286,8 +283,7 @@ var VMFactory = React.createClass({
 			dataType: 'json',
 			cache: false,
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
 				data.sort(function(a, b) {
@@ -309,8 +305,7 @@ var VMFactory = React.createClass({
 			dataType: 'json',
 			cache: false,
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
 				data.sort(function(a, b) {
@@ -332,8 +327,7 @@ var VMFactory = React.createClass({
 			dataType: 'json',
 			cache: false,
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
 				data.sort(function(a, b) {
@@ -342,6 +336,31 @@ var VMFactory = React.createClass({
 					return 0;
 				});
 				self.setState({volumetypelist:data});
+			}.bind(this),
+			error: function(xhr, status, err) {
+				console.error(this.props.url, status, err.toString());
+			}.bind(this)
+		});
+	},
+	loadFloatingIPListFromServer: function(tenant) {
+		var self = this;
+		$.ajax({
+			url: tenant+'/floatingiplist/',
+			dataType: 'json',
+			cache: false,
+			headers: {
+				'X-Auth-Token':this.props.authToken,
+			},
+			success: function(data) {
+				data.sort(function(a, b) {
+					var ip_a = a.ip.split(".");
+					var ip_b = b.ip.split(".");
+
+					var resulta = ip_a[0]*0x1000000 + ip_a[1]*0x10000 + ip_a[2]*0x100 + ip_a[3]*1;
+					var resultb = ip_b[0]*0x1000000 + ip_b[1]*0x10000 + ip_b[2]*0x100 + ip_b[3]*1;
+					return resulta - resultb;
+				});
+				self.setState({floatingiplist:data});
 			}.bind(this),
 			error: function(xhr, status, err) {
 				console.error(this.props.url, status, err.toString());
@@ -369,9 +388,11 @@ var VMFactory = React.createClass({
 	},
 */
 	handleChange: function(event) {
+		sessionStorage.setItem('lastTenant', event.target.value);
 		this.loadVolumeTypeListFromServer(event.target.value);
 		this.loadVMListFromServer(event.target.value);
 		this.loadNetworkListFromServer(event.target.value);
+		this.loadFloatingIPListFromServer(event.target.value);
 		this.loadFlavorListFromServer(event.target.value);
 		this.loadSecgroupListFromServer(event.target.value);
 		this.loadImageListFromServer(event.target.value);
@@ -427,10 +448,10 @@ var VMFactory = React.createClass({
 			type: 'POST',
 			data: JSON.stringify(data),
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
+				this.loadFloatingIPListFromServer(this.state.tenant);
 				this.loadVMListFromServer(this.state.tenant);
 				callback(true);
 				$('#createvm').modal('hide');
@@ -498,7 +519,9 @@ var VMFactory = React.createClass({
 							<label>Tenant</label>
 							<select className="ui fluid dropdown"
 								disabled={!this.state.tenantenabled}
-								onChange={this.handleChange}>
+								onChange={this.handleChange}
+								defaultValue={this.props.lastTenant}
+								>
 								{TenantSelect}
 							</select>
 						</div>
@@ -518,6 +541,7 @@ var VMFactory = React.createClass({
 								flavorlist={this.state.flavorlist}
 								imagelist={this.state.imagelist}
 								networklist={this.state.networklist}
+								floatingiplist={this.state.floatingiplist}
 								secgrouplist={this.state.secgrouplist}
 								oszonelist={this.state.oszonelist}
 								keypairlist={this.state.keypairlist}
@@ -552,12 +576,30 @@ var VMFactory = React.createClass({
 
 var VMCreateItem = React.createClass({
 	getInitialState: function() {
-		return({oszone:'',vmname:'',flavor:'',image:'',secgroup:'',network:'',osvolumesize:50, keypair:'', volumetype:''});
+		return({oszone:'',
+			vmname:'',
+			flavor:'',
+			image:'',
+			secgroup:'',
+			network:'',
+			osvolumesize:50,
+			keypair:'',
+			volumetype:'',
+			floatingip:''});
 	},
 	componentDidMount: function() {
 	},
 	componentWillReceiveProps: function() {
-		this.setState({oszone:'',vmname:'',flavor:'',image:'',secgroup:'',network:'',osvolumesize:50, keypair:'',volumetype:''});
+		this.setState({	oszone:'',
+				vmname:'',
+				flavor:'',
+				image:'',
+				secgroup:'',
+				network:'',
+				floatingip:'',
+				osvolumesize:50,
+				keypair:'',
+				volumetype:''});
 	},
 	handleVMNameChange: function(e) {
 		this.setState({vmname:e.target.value});
@@ -585,6 +627,9 @@ var VMCreateItem = React.createClass({
 	},
 	handleKeypairChange: function(e) {
 		this.setState({keypair:e.target.value});
+	},
+	handleFloatingIpChange: function(e) {
+		this.setState({floatingip:e.target.value});
 	},
 	isCorrect: function() {
 		if(	this.state.oszone	== '' ||
@@ -620,6 +665,9 @@ var VMCreateItem = React.createClass({
 		if(this.state.keypair != '')
 			submitdata["keypair"]	= this.state.keypair;
 		
+		if(this.state.floatingip != '')
+			submitdata["floatingip"]= this.state.floatingip;
+
 		this.props.createVM(submitdata, callback);
 
 		return true;
@@ -704,6 +752,17 @@ var VMCreateItem = React.createClass({
 				</option>
 			)
 		}.bind(this));
+		var FloatingIpSelect = this.props.floatingiplist.map(function(floatingip) {
+			return (
+				<option
+					key={floatingip.ID}
+					value={floatingip.ip}
+					name={floatingip.ip}
+				>
+				{floatingip.ip}
+				</option>
+			)
+		}.bind(this));
 		return(
 		<div className="ui center segment">
 			<div className="ui form">
@@ -784,6 +843,13 @@ var VMCreateItem = React.createClass({
 							onChange={this.handleKeypairChange}>
 							<option value=''>Keypair</option>
 							{KeypairSelect}
+						</select>
+					</div>
+					<div className="field">
+						<select value={this.state.floatingip}
+							onChange={this.handleFloatingIpChange}>
+							<option value=''>Floating IP</option>
+							{FloatingIpSelect}
 						</select>
 					</div>
 				</div>
@@ -924,8 +990,7 @@ var VMInfo = React.createClass({
 			type: 'POST',
 			data: JSON.stringify(volumelist),
 			headers: {
-				'UserName':this.props.userName,
-				'Password':this.props.password,
+				'X-Auth-Token':this.props.authToken,
 			},
 			success: function(data) {
 				callback(false);
@@ -1157,7 +1222,7 @@ var LoginTemplate = React.createClass({
 			type: 'POST',
 			data: JSON.stringify(logindata),
 			success: function(data) {
-				this.props.callback(this.state.userid, this.state.password);
+				this.props.callback(data);
 			}.bind(this),
 			error: function(xhr, status, err) {
 				console.error(this.props.url, status, err.toString());

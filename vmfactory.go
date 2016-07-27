@@ -19,6 +19,7 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/flavors"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 
@@ -69,6 +70,7 @@ func main() {
 		"/login/"			: loginProcessor,
 		"/logout/"			: logoutProcessor,
 		"/tenantlist/"			: tenantlistProcessor,
+		"/api/"				: apiProcessor,
 		}
 	tenanturlparser := map[string]interface{} {
 		"/vmlist/"			: vmlistProcessor,
@@ -81,6 +83,7 @@ func main() {
 		"/volumeavailabilityzonelist/"	: volumeavailabilityzonelistProcessor,
 		"/volumetypelist/"		: volumetypelistProcessor,
 		"/networklist/{tenantid}/"	: networklistProcessor,
+		"/floatingiplist/"		: floatingiplistProcessor,
 		"/createvolumes/{vmid}/"	: createvolumesProcessor,
 		"/createvm/"			: createvmProcessor,
 		"/vminfo/{vmid}/"		: vminfoProcessor,
@@ -111,6 +114,10 @@ func main() {
 	http.ListenAndServe(":3000", r)
 }
 
+func apiProcessor(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	http.ServeFile(w, r, "templates/vmfactory.json")
+}
 func defaultProcessor(w http.ResponseWriter, r *http.Request) {
 
 //	_, err := getCredential(r, false)
@@ -677,6 +684,48 @@ func networklistProcessor(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
+func floatingiplistProcessor(w http.ResponseWriter, r *http.Request) {
+	var response []map[string]string
+
+	provider, err := getCredential(r, true)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	client, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{})
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	pager := floatingip.List(client)
+
+	err = pager.EachPage(func(page pagination.Page)(bool, error) {
+		floatingipList, err := floatingip.ExtractFloatingIPs(page)
+
+		for _, ip := range floatingipList {
+			if ip.InstanceID == "" {
+				floatingipInfo := make(map[string]string)
+				floatingipInfo["ID"]	= ip.ID
+				floatingipInfo["ip"]	= ip.IP
+				response = append(response, floatingipInfo)
+			}
+		}
+		return true, err
+	})
+
+	var js []byte
+	w.Header().Set("Content-Type", "application/json")
+	if response == nil {
+		js, err = json.Marshal(make([]int, 0))
+	} else {
+		js, err = json.Marshal(response)
+	}
+	w.Write(js)
+}
+
 func createvolumesProcessor(w http.ResponseWriter, r *http.Request) {
 
 	provider, err := getCredential(r, true)
@@ -951,6 +1000,25 @@ func createvmProcessor(w http.ResponseWriter, r *http.Request) {
 		for instance.Status != "ACTIVE" {
 			time.Sleep(1000 * time.Millisecond)
 			instance, err = servers.Get(computeclient, instance.ID).Extract()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		floatingipaddr, floatingipfound := vminfo["floatingip"].(string)
+		if floatingipfound {
+			res := floatingip.AssociateInstance(	computeclient,
+								floatingip.AssociateOpts{
+									ServerID:instance.ID,
+									FloatingIP:floatingipaddr,
+								})
+			err = res.ErrResult.Result.Err
+			if err != nil {
+				w.Write([]byte(err.Error()))
+				//http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 
 	}
@@ -1046,10 +1114,8 @@ func vminfoProcessor(w http.ResponseWriter, r *http.Request) {
 }
 
 func getCredential(r *http.Request, getTenant bool)(*gophercloud.ProviderClient, error){
-	userName := r.Header.Get("UserName")
-	password := r.Header.Get("Password")
-
-	if userName == "" || password == "" {
+	authToken := r.Header.Get("X-Auth-Token")
+	if authToken == "" {
 		return nil, fmt.Errorf("Authorization required")
 	}
 
@@ -1066,8 +1132,7 @@ func getCredential(r *http.Request, getTenant bool)(*gophercloud.ProviderClient,
 
 	opts := gophercloud.AuthOptions {
 		IdentityEndpoint	: openstack_url+":5000/v2.0/",
-		Username		: userName,
-		Password		: password,
+		TokenID			: authToken,
 		TenantName		: tenantname,
 		}
 
